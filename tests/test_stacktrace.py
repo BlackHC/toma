@@ -24,7 +24,6 @@ def test_get_simple_traceback():
     assert hash(stacktraces[0]) == hash(stacktraces[1])
 
 
-
 def test_watermark():
     stacktrace1 = outer_func()
 

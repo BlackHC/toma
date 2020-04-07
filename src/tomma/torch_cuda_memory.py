@@ -7,6 +7,7 @@ import torch
 import gc
 import functools
 
+
 def gc_cuda():
     """Gargage collect Torch cuda memory."""
     gc.collect()

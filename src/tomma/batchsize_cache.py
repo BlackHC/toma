@@ -56,7 +56,6 @@ class StacktraceMemoryBatchsizeCache(BatchsizeCache):
 
     def get_batchsize(self):
         stacktrace = tst.get_simple_traceback(2)
-        available_memory_256MB = int(
-            tcm.get_cuda_assumed_available_memory() // 2**28)
+        available_memory_256MB = int(tcm.get_cuda_assumed_available_memory() // 2 ** 28)
 
         return self.get_batchsize_from_cache(stacktrace, available_memory_256MB)

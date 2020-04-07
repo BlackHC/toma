@@ -49,8 +49,7 @@ def mma(func=None, *, method=simple_mma):
 
     @functools.wraps(func)
     def wrapped(initial_batchsize, *args, **kwargs):
-        return method(lambda bs: func(bs, *args, **kwargs),
-                      initial_batchsize)
+        return method(lambda bs: func(bs, *args, **kwargs), initial_batchsize)
 
     # TODO: update __doc__ string
 
@@ -62,8 +61,7 @@ def mma_range(func=None, *, method=simple_mma_range):
         return functools.partial(mma_range, method=method)
 
     @functools.wraps(func)
-    def wrapped(start, end, *args, mma_initial_step,
-                **kwargs):
+    def wrapped(start, end, *args, mma_initial_step, **kwargs):
         return method(func, start, end, mma_initial_step)
 
     wrapped.__doc__ = f"""
@@ -85,16 +83,11 @@ def mma_chunked(func=None, *, method=simple_mma_range):
         return functools.partial(mma_chunked, method=method)
 
     @functools.wraps(func)
-    def wrapped(tensor: torch.Tensor, *args, mma_initial_step,
-                mma_dimension=0,
-                **kwargs):
+    def wrapped(tensor: torch.Tensor, *args, mma_initial_step, mma_dimension=0, **kwargs):
         def body(current, current_end):
-            return func(tensor.narrow(dim=mma_dimension, start=current,
-                                      length=current_end - current), *args,
-                        **kwargs)
+            return func(tensor.narrow(dim=mma_dimension, start=current, length=current_end - current), *args, **kwargs)
 
-        return method(body, 0, tensor.shape[mma_dimension],
-                      mma_initial_step)
+        return method(body, 0, tensor.shape[mma_dimension], mma_initial_step)
 
     wrapped.__doc__ = f"""
 Wrapped in mma_chunked: 
@@ -111,9 +104,8 @@ Additional keyargs:
     return wrapped
 
 
-def explicit_mma(func, initial_batchsize,
-                 batchsize_cache=tbc.GlobalBatchsizeCache):
-    if not hasattr(func, 'mma_cache'):
+def explicit_mma(func, initial_batchsize, batchsize_cache=tbc.GlobalBatchsizeCache):
+    if not hasattr(func, "mma_cache"):
         func.mma_cache = batchsize_cache()
 
     func.mma_cache.set_initial_batchsize(initial_batchsize)
@@ -124,17 +116,15 @@ def explicit_mma(func, initial_batchsize,
             value = batchsize.get_batchsize()
             return func(value)
         except RuntimeError as exception:
-            if value > 1 and tcm.should_reduce_batch_size(
-                    exception):
+            if value > 1 and tcm.should_reduce_batch_size(exception):
                 batchsize.decrease_batchsize()
                 tcm.gc_cuda()
             else:
                 raise
 
 
-def explicit_mma_range(func, start, end, initial_step,
-                       batchsize_cache=tbc.GlobalBatchsizeCache):
-    if not hasattr(func, 'mma_cache'):
+def explicit_mma_range(func, start, end, initial_step, batchsize_cache=tbc.GlobalBatchsizeCache):
+    if not hasattr(func, "mma_cache"):
         func.mma_cache = batchsize_cache()
 
     func.mma_cache.set_initial_batchsize(initial_step)
@@ -147,8 +137,7 @@ def explicit_mma_range(func, start, end, initial_step,
             func(current, min(current + batchsize.get_batchsize(), end))
             current += batchsize.get_batchsize()
         except RuntimeError as exception:
-            if batchsize.get_batchsize() > 1 and tcm.should_reduce_batch_size(
-                    exception):
+            if batchsize.get_batchsize() > 1 and tcm.should_reduce_batch_size(exception):
                 batchsize.decrease_batchsize()
                 tcm.gc_cuda()
             else:
