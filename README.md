@@ -24,7 +24,7 @@ python setup.py test
 ## Example
 
 ```python
-from tome import toma
+from toma import toma
 
 @toma.batch(initial_batchsize=512)
 def train_model(batchsize, model, dataset):
@@ -70,11 +70,11 @@ They can be changed by either setting `toma.DEFAULT_CACHE_TYPE` or by passing `c
 
 For example:
 ```python
-@toma.batch(initial_batchsize=512, cache_type=toma.GlobalBatchsizeCache)`
+@toma.batch(initial_batchsize=512, cache_type=toma.GlobalBatchsizeCache)
 ```
 or
 ```python
-toma.explicit.batch(..., toma_cache_type=toma.GlobalBatchsizeCache)`
+toma.explicit.batch(..., toma_cache_type=toma.GlobalBatchsizeCache)
 ```
 
 ### `StacktraceMemoryBatchsizeCache`: Stacktrace & Available Memory (*the default*)

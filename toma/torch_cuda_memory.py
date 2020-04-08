@@ -10,23 +10,32 @@ import gc
 def gc_cuda():
     """Gargage collect Torch cuda memory."""
     gc.collect()
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 def get_cuda_total_memory():
-    return torch.cuda.get_device_properties(0).total_memory
+    if torch.cuda.is_available():
+        return torch.cuda.get_device_properties(0).total_memory
+    return 0
 
 
 def get_cuda_assumed_available_memory():
-    return get_cuda_total_memory() - torch.cuda.memory_reserved()
+    if torch.cuda.is_available():
+        return get_cuda_total_memory() - torch.cuda.memory_reserved()
+    return 0
 
 
 def get_cuda_available_memory():
     # Always allow for 1 GB overhead.
-    return get_cuda_assumed_available_memory() - get_cuda_blocked_memory()
-
+    if torch.cuda.is_available():
+        return get_cuda_assumed_available_memory() - get_cuda_blocked_memory()
+    return 0
 
 def get_cuda_blocked_memory():
+    if not torch.cuda.is_available():
+        return 0
+
     # In GB steps
     available_memory = get_cuda_assumed_available_memory()
     current_block = available_memory - 2 ** 30
@@ -66,6 +75,9 @@ def should_reduce_batch_size(exception):
 
 
 def cuda_meminfo():
+    if not torch.cuda.is_available():
+        return
+
     print(
         "Total:", torch.cuda.memory_allocated() / 2 ** 30, " GB Cached: ", torch.cuda.memory_reserved() / 2 ** 30, "GB"
     )
