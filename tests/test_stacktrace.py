@@ -1,4 +1,4 @@
-from tomma import stacktrace
+from tomaa import stacktrace
 
 
 def get_stacktrace():

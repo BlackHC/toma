@@ -5,7 +5,6 @@ because of OOM conditions.
 from __future__ import print_function
 import torch
 import gc
-import functools
 
 
 def gc_cuda():
@@ -19,7 +18,7 @@ def get_cuda_total_memory():
 
 
 def get_cuda_assumed_available_memory():
-    return get_cuda_total_memory() - torch.cuda.memory_cached()
+    return get_cuda_total_memory() - torch.cuda.memory_reserved()
 
 
 def get_cuda_available_memory():
@@ -67,11 +66,11 @@ def should_reduce_batch_size(exception):
 
 
 def cuda_meminfo():
-    print("Total:", torch.cuda.memory_allocated() / 2 ** 30, " GB Cached: ", torch.cuda.memory_cached() / 2 ** 30, "GB")
+    print("Total:", torch.cuda.memory_allocated() / 2 ** 30, " GB Cached: ", torch.cuda.memory_reserved() / 2 ** 30, "GB")
     print(
         "Max Total:",
         torch.cuda.max_memory_allocated() / 2 ** 30,
         " GB Max Cached: ",
-        torch.cuda.max_memory_cached() / 2 ** 30,
+        torch.cuda.max_memory_reserved() / 2 ** 30,
         "GB",
     )
