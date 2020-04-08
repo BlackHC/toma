@@ -1,3 +1,6 @@
+import torch
+import pytest
+
 from toma import explicit
 from toma.batchsize_cache import NoBatchsizeCache, GlobalBatchsizeCache, StacktraceMemoryBatchsizeCache
 
@@ -6,7 +9,23 @@ def raise_fake_oom():
     raise RuntimeError("CUDA out of memory.")
 
 
-def test_fake_explicit_toma_none():
+def test_fake_explicit_batch_raise():
+    def f(batchsize):
+        raise_fake_oom()
+
+    with pytest.raises(RuntimeError):
+        explicit.batch(f, 64)
+
+
+def test_fake_explicit_range_raise():
+    def f(start, end):
+        raise_fake_oom()
+
+    with pytest.raises(RuntimeError):
+        explicit.range(f, 0, 64, 64)
+
+
+def test_fake_explicit_batch_none():
     batchsizes = []
 
     def f(batchsize):
@@ -22,7 +41,7 @@ def test_fake_explicit_toma_none():
     assert batchsizes == [64, 32, 16, 64, 32, 16]
 
 
-def test_fake_explicit_toma_global():
+def test_fake_explicit_batch_global():
     batchsizes = []
 
     def f(batchsize):
@@ -40,7 +59,7 @@ def test_fake_explicit_toma_global():
     assert batchsizes == [64, 32, 16, 16, 16, 16]
 
 
-def test_fake_explicit_toma_sm():
+def test_fake_explicit_batch_sm():
     batchsizes = []
 
     def f(batchsize):
@@ -58,7 +77,7 @@ def test_fake_explicit_toma_sm():
     assert batchsizes == [64, 32, 16, 16, 16, 64, 32, 16]
 
 
-def test_fake_explicit_toma_mix():
+def test_fake_explicit_batch_mix():
     batchsizes = []
 
     def f(batchsize):
@@ -79,7 +98,7 @@ def test_fake_explicit_toma_mix():
     assert batchsizes == [64, 32, 16, 16, 16, 16, 64, 32, 16, 16]
 
 
-def test_fake_explicit_toma_range_none():
+def test_fake_explicit_range_none():
     batchsizes = []
 
     def f(start, end):
@@ -99,7 +118,7 @@ def test_fake_explicit_toma_range_none():
     assert batchsizes == [64, 64, 32, 32, 16, 16] * 2
 
 
-def test_fake_explicit_toma_range_global():
+def test_fake_explicit_range_global():
     batchsizes = []
 
     def f(start, end):
@@ -121,7 +140,7 @@ def test_fake_explicit_toma_range_global():
     assert batchsizes == [64, 64, 32, 32, 16, 16] + [16] * 8 * 2
 
 
-def test_fake_explicit_toma_range_sm():
+def test_fake_explicit_range_sm():
     batchsizes = []
 
     def f(start, end):
@@ -143,7 +162,7 @@ def test_fake_explicit_toma_range_sm():
     assert batchsizes == [64, 64, 32, 32, 16, 16] + [16] * 8 + [64, 64, 32, 32, 16, 16]
 
 
-def test_fake_explicit_toma_range_sm():
+def test_fake_explicit_range_sm():
     batchsizes = []
 
     def f(start, end):
@@ -166,3 +185,12 @@ def test_fake_explicit_toma_range_sm():
         explicit.range(f, 0, 128, 64, toma_cache_type=StacktraceMemoryBatchsizeCache)
 
     assert batchsizes == ([64, 64, 32, 32, 16, 16] + [16] * 8 * 2 + [64, 64, 32, 32, 16, 16] + [16] * 8)
+
+
+def test_explicit_chunked():
+    def func(tensor, start, end):
+        tensor[:] = 1.
+
+    tensor = torch.zeros((128, 4, 4))
+    explicit.chunked(func, tensor, 32)
+    assert torch.allclose(tensor, torch.tensor(1.))

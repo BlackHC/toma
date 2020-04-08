@@ -1,3 +1,4 @@
+import torch
 from toma import toma, explicit, batchsize_cache as tbc
 
 
@@ -5,7 +6,7 @@ def raise_fake_oom():
     raise RuntimeError("CUDA out of memory.")
 
 
-def test_fake_toma_simple():
+def test_fake_batch_none():
     batchsizes = []
 
     @toma.batch(initial_batchsize=64, cache_type=tbc.NoBatchsizeCache)
@@ -22,7 +23,7 @@ def test_fake_toma_simple():
     assert batchsizes == [64, 32, 16, 64, 32, 16]
 
 
-def test_fake_toma_explicit():
+def test_fake_batch_global():
     batchsizes = []
 
     @toma.batch(initial_batchsize=64, cache_type=tbc.GlobalBatchsizeCache)
@@ -39,7 +40,7 @@ def test_fake_toma_explicit():
     assert batchsizes == [64, 32, 16, 16]
 
 
-def test_fake_toma_range_global():
+def test_fake_range_none():
     batchsizes = []
 
     @toma.range(initial_step=64, cache_type=tbc.NoBatchsizeCache)
@@ -60,7 +61,7 @@ def test_fake_toma_range_global():
     assert batchsizes == [64, 64, 32, 32, 16, 16] * 2
 
 
-def test_fake_toma_range_explicit():
+def test_fake_range_global():
     batchsizes = []
 
     @toma.range(initial_step=64, cache_type=tbc.GlobalBatchsizeCache)
@@ -79,3 +80,13 @@ def test_fake_toma_range_explicit():
         f(0, 128)
 
     assert batchsizes == [64, 64, 32, 32, 16, 16] + [16] * 8
+
+
+def test_chunked():
+    @toma.chunked(initial_step=32)
+    def func(tensor, start, end):
+        tensor[:] = 1.
+
+    tensor = torch.zeros((128, 4, 4))
+    func(tensor)
+    assert torch.allclose(tensor, torch.tensor(1.))

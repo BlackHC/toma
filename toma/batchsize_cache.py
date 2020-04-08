@@ -14,11 +14,12 @@ class Batchsize:
         if not self.value:
             self.value = initial_batchsize
 
-    def get_batchsize(self) -> int:
+    def get(self) -> int:
         return self.value
 
     def decrease_batchsize(self):
         self.value //= 2
+        assert self.value > 0
 
 
 class BatchsizeCache:

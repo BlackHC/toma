@@ -1,0 +1,5 @@
+[run]
+source=toma/*
+omit=
+    */tests/*
+    setup.py

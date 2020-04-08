@@ -1,7 +1,13 @@
-# TOrch Memory-Adaptive Algorithms
+# Torch Memory-adaptive Algorithms (TOMA)
+
+[![Build Status](https://www.travis-ci.com/BlackHC/implicit_lambda.svg?branch=master)](https://www.travis-ci.com/BlackHC/implicit_lambda) [![codecov](https://codecov.io/gh/BlackHC/implicit_lambda/branch/master/graph/badge.svg)](https://codecov.io/gh/BlackHC/implicit_lambda) [![PyPI](https://img.shields.io/badge/PyPI-implicit_lambda-blue.svg)](https://pypi.python.org/pypi/implicit_lambda/)
+
+
+A collection of helpers to make it easier to write code that adapts to the available CUDA memory.
+
+## Installation
+
 
 TODOs:
 * [] write readme
-* [] add a test for simple_chunked
-* [x] add tests for explicit_*
-* [] add tests for the decorators
+* [] add doc strings

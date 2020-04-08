@@ -7,7 +7,7 @@ def raise_fake_oom():
     raise RuntimeError("CUDA out of memory.")
 
 
-def test_fake_simple_toma():
+def test_fake_simple_batch():
     hit_16 = False
 
     def f(batch_size):
@@ -24,7 +24,7 @@ def test_fake_simple_toma():
     assert hit_16
 
 
-def test_fake_simple_toma_range():
+def test_fake_simple_range():
     hit_16 = False
 
     def f(start, end):
@@ -43,7 +43,7 @@ def test_fake_simple_toma_range():
     assert hit_16
 
 
-def test_fake_simple_toma_chunked():
+def test_fake_simple_chunked():
     hit_16 = False
 
     def f(tensor, start, end):
@@ -63,7 +63,7 @@ def test_fake_simple_toma_chunked():
     assert hit_16
 
 
-def test_simple_toma():
+def test_simple_batch():
     import torch
 
     if not torch.cuda.is_available():
@@ -89,7 +89,7 @@ def test_simple_toma():
     assert succeeded
 
 
-def test_simple_toma_range():
+def test_simple_range():
     import torch
 
     if not torch.cuda.is_available():

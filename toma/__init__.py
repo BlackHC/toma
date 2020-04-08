@@ -178,7 +178,7 @@ class explicit:
 
         while True:
             try:
-                value = batchsize.get_batchsize()
+                value = batchsize.get()
                 return func(value, *args, **kwargs)
             except RuntimeError as exception:
                 if value > 1 and tcm.should_reduce_batch_size(exception):
@@ -206,10 +206,10 @@ class explicit:
         current = start
         while current < end:
             try:
-                func(current, min(current + batchsize.get_batchsize(), end), *args, **kwargs)
-                current += batchsize.get_batchsize()
+                func(current, min(current + batchsize.get(), end), *args, **kwargs)
+                current += batchsize.get()
             except RuntimeError as exception:
-                if batchsize.get_batchsize() > 1 and tcm.should_reduce_batch_size(exception):
+                if batchsize.get() > 1 and tcm.should_reduce_batch_size(exception):
                     batchsize.decrease_batchsize()
                     tcm.gc_cuda()
                 else:
