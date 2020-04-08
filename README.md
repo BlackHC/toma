@@ -35,9 +35,10 @@ train_model(batchsize, model, dataset)
 
 This will try to execute train_model with batchsize=512. If a memory error is thrown, it will decrease the batchsize until it succeeds.
 
-:information_source: This batch size can be different from the batch size used to accumulate gradients by only calling `optimizer.step()` every so often.
+**Note:** 
+This batch size can be different from the batch size used to accumulate gradients by only calling `optimizer.step()` every so often.
 
-To make it easier to loop over arranges, there are also `toma.range` and `toma.chunked`:
+To make it easier to loop over a ranges, there are also `toma.range` and `toma.chunked`:
 
 ```python
 @toma.chunked(initial_step=512)
