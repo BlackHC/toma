@@ -10,7 +10,10 @@ import torch
 
 import toma.torch_cuda_memory as tcm
 import toma.stacktrace as tst
-import toma.batchsize_cache as tbc
+from toma.batchsize_cache import StacktraceMemoryBatchsizeCache, NoBatchsizeCache, GlobalBatchsizeCache
+
+
+DEFAULT_CACHE_TYPE = StacktraceMemoryBatchsizeCache
 
 
 class simple:
@@ -64,7 +67,7 @@ class toma:
     """
 
     @staticmethod
-    def batch(func=None, *, initial_batchsize=None, cache_type=tbc.StacktraceMemoryBatchsizeCache):
+    def batch(func=None, *, initial_batchsize=None, cache_type=DEFAULT_CACHE_TYPE):
         if func is None:
             return functools.partial(toma.batch, initial_batchsize=initial_batchsize, cache_type=cache_type)
 
@@ -85,7 +88,7 @@ Additional keyargs:
         return wrapped
 
     @staticmethod
-    def range(func=None, *, initial_step: Optional[int] = None, cache_type=tbc.StacktraceMemoryBatchsizeCache):
+    def range(func=None, *, initial_step: Optional[int] = None, cache_type=DEFAULT_CACHE_TYPE):
         if func is None:
             return functools.partial(toma.range, initial_step=initial_step, cache_type=cache_type)
 
@@ -114,7 +117,7 @@ Additional keyargs:
         *,
         initial_step: Optional[int] = None,
         dimension: Optional[int] = None,
-        cache_type: Type = tbc.StacktraceMemoryBatchsizeCache,
+        cache_type: Type = DEFAULT_CACHE_TYPE,
     ):
         dimension = dimension or 0
         if func is None:
@@ -169,9 +172,11 @@ class explicit:
         initial_batchsize: int,
         *args,
         toma_context=None,
-        toma_cache_type: Type = tbc.GlobalBatchsizeCache,
+        toma_cache_type: Type = DEFAULT_CACHE_TYPE,
         **kwargs,
     ):
+        tcm.gc_cuda()
+
         cache = get_cache_for_context(toma_cache_type, toma_context or func)
 
         batchsize = cache.get_batchsize(initial_batchsize)
@@ -195,9 +200,11 @@ class explicit:
         initial_step: int,
         *args,
         toma_context=None,
-        toma_cache_type: Type = tbc.GlobalBatchsizeCache,
+        toma_cache_type: Type = DEFAULT_CACHE_TYPE,
         **kwargs,
     ):
+        tcm.gc_cuda()
+
         cache = get_cache_for_context(toma_cache_type, toma_context or func)
 
         batchsize = cache.get_batchsize(initial_step)
@@ -223,7 +230,7 @@ class explicit:
         *args,
         toma_dimension: int = None,
         toma_context=None,
-        toma_cache_type: Type = tbc.GlobalBatchsizeCache,
+        toma_cache_type: Type = DEFAULT_CACHE_TYPE,
         **kwargs,
     ):
         toma_dimension = toma_dimension or 0
