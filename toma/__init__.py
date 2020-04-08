@@ -127,7 +127,7 @@ Additional keyargs:
 
         @functools.wraps(func)
         def wrapped(
-            result: torch.Tensor,
+            tensor: torch.Tensor,
             *args,
             toma_initial_step: Optional[int] = None,
             toma_dimension: Optional[int] = None,
@@ -137,7 +137,7 @@ Additional keyargs:
             _dimension = toma_dimension or dimension
 
             explicit.chunked(
-                func, result, _initial_step, *args, toma_dimension=toma_dimension, toma_cache_type=cache_type, **kwargs
+                func, tensor, _initial_step, *args, toma_dimension=toma_dimension, toma_cache_type=cache_type, **kwargs
             )
 
         wrapped.__doc__ = f"""
@@ -168,12 +168,7 @@ class explicit:
 
     @staticmethod
     def batch(
-        func,
-        initial_batchsize: int,
-        *args,
-        toma_context=None,
-        toma_cache_type: Type = DEFAULT_CACHE_TYPE,
-        **kwargs,
+        func, initial_batchsize: int, *args, toma_context=None, toma_cache_type: Type = DEFAULT_CACHE_TYPE, **kwargs
     ):
         tcm.gc_cuda()
 
@@ -225,7 +220,7 @@ class explicit:
     @staticmethod
     def chunked(
         func,
-        result: torch.Tensor,
+        tensor: torch.Tensor,
         initial_step: int,
         *args,
         toma_dimension: int = None,
@@ -236,12 +231,12 @@ class explicit:
         toma_dimension = toma_dimension or 0
 
         def body(start: int, end: int):
-            return func(result.narrow(dim=toma_dimension, start=start, length=end - start), start, end, *args, **kwargs)
+            return func(tensor.narrow(dim=toma_dimension, start=start, length=end - start), start, end, *args, **kwargs)
 
         explicit.range(
             body,
             0,
-            result.shape[toma_dimension],
+            tensor.shape[toma_dimension],
             initial_step,
             *args,
             toma_context=toma_context or func,

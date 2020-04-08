@@ -189,8 +189,8 @@ def test_fake_explicit_range_sm():
 
 def test_explicit_chunked():
     def func(tensor, start, end):
-        tensor[:] = 1.
+        tensor[:] = 1.0
 
     tensor = torch.zeros((128, 4, 4))
     explicit.chunked(func, tensor, 32)
-    assert torch.allclose(tensor, torch.tensor(1.))
+    assert torch.allclose(tensor, torch.tensor(1.0))

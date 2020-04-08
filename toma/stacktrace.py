@@ -16,7 +16,7 @@ def _constant_code_context(code_context):
 def get_simple_traceback(ignore_top=0):
     """Get a simple trackback that can be hashed and won't create reference
     cyles."""
-    stack = inspect.stack(context=1)[ignore_top + 1: -__watermark - 1]
+    stack = inspect.stack(context=1)[ignore_top + 1 : -__watermark - 1]
     simple_traceback = tuple(
         (fi.filename, fi.lineno, fi.function, _constant_code_context(fi.code_context), fi.index) for fi in stack
     )

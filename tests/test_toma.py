@@ -85,8 +85,8 @@ def test_fake_range_global():
 def test_chunked():
     @toma.chunked(initial_step=32)
     def func(tensor, start, end):
-        tensor[:] = 1.
+        tensor[:] = 1.0
 
     tensor = torch.zeros((128, 4, 4))
     func(tensor)
-    assert torch.allclose(tensor, torch.tensor(1.))
+    assert torch.allclose(tensor, torch.tensor(1.0))
