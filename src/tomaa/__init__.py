@@ -4,6 +4,8 @@ Helpers to allow for OOM conditions and dynamic adaptation of "internal"
 batchsizes. (Without affecting the computational ones.)
 """
 import functools
+from typing import Type
+
 import torch
 
 import tomaa.torch_cuda_memory as tcm
@@ -11,161 +13,213 @@ import tomaa.stacktrace as tst
 import tomaa.batchsize_cache as tbc
 
 
-def simple(func, initial_batchsize, bind_to=None):
-    tcm.gc_cuda()
+class simple:
+    """
+    Straight-forward wrappers (can be copy-pasted and hacked easily).
+    """
 
-    batchsize = initial_batchsize
-    while True:
-        try:
-            return func(batchsize)
-        except RuntimeError as exception:
-            if batchsize > 1 and tcm.should_reduce_batch_size(exception):
-                batchsize //= 2
-                tcm.gc_cuda()
-            else:
-                raise
+    @staticmethod
+    def batch(func, initial_batchsize, *args, **kwargs):
+        tcm.gc_cuda()
 
+        batchsize = initial_batchsize
+        while True:
+            try:
+                return func(batchsize, *args, **kwargs)
+            except RuntimeError as exception:
+                if batchsize > 1 and tcm.should_reduce_batch_size(exception):
+                    batchsize //= 2
+                    tcm.gc_cuda()
+                else:
+                    raise
 
-def simple_range(func, start, end, initial_step, bind_to=None):
-    tcm.gc_cuda()
+    @staticmethod
+    def range(func, start, end, initial_step, *args, **kwargs):
+        tcm.gc_cuda()
 
-    stepsize = initial_step
-    current = start
-    while current < end:
-        try:
-            func(current, min(current + stepsize, end))
-            current += stepsize
-        except RuntimeError as exception:
-            if stepsize > 1 and tcm.should_reduce_batch_size(exception):
-                stepsize //= 2
-                tcm.gc_cuda()
-            else:
-                raise
+        stepsize = initial_step
+        current = start
+        while current < end:
+            try:
+                func(current, min(current + stepsize, end), *args, **kwargs)
+                current += stepsize
+            except RuntimeError as exception:
+                if stepsize > 1 and tcm.should_reduce_batch_size(exception):
+                    stepsize //= 2
+                    tcm.gc_cuda()
+                else:
+                    raise
 
-
-def simple_chunked(func, tensor, initial_step, dimension=0):
-    def body(start, end):
-        return func(
-            tensor.narrow(dim=dimension, start=start, length=end - start),
-            start, end)
-
-    return simple_range(body, 0, tensor.shape[dimension], initial_step)
-
-
-def toma(func=None, *, method=simple):
-    if func is None:
-        return functools.partial(toma, method=method)
-
-    @functools.wraps(func)
-    def wrapped(initial_batchsize, *args, **kwargs):
-        return method(lambda bs: func(bs, *args, **kwargs), initial_batchsize,
-                      bind_to=func)
-
-    # TODO: update __doc__ string
-
-    return wrapped
-
-
-def toma_range(func=None, *, method=simple_range):
-    if func is None:
-        return functools.partial(toma_range, method=method)
-
-    @functools.wraps(func)
-    def wrapped(start, end, *args, maa_initial_step, **kwargs):
-        return method(lambda start, end: func(start, end, *args, **kwargs),
-                      start, end, maa_initial_step, bind_to=func)
-
-    wrapped.__doc__ = f"""
-Wrapped in maa_range: 
-
-Expects start, end as first arguments.
-
-Additional keyargs:
-    maa_initial_step: initial step size to use.
-
-{wrapped.__doc__}
-"""
-
-    return wrapped
-
-
-def toma_chunked(func=None, *, method=simple_range):
-    if func is None:
-        return functools.partial(toma_chunked, method=method)
-
-    @functools.wraps(func)
-    def wrapped(tensor: torch.Tensor, *args, maa_initial_step, maa_dimension=0,
-                **kwargs):
+    @staticmethod
+    def chunked(func, tensor, initial_step, dimension=0):
         def body(start, end):
-            return func(tensor.narrow(dim=maa_dimension, start=start,
-                                      length=end - start), start, end, *args,
-                        **kwargs)
+            return func(tensor.narrow(dim=dimension, start=start, length=end - start), start, end)
 
-        return method(body, 0, tensor.shape[maa_dimension], maa_initial_step)
+        return simple.range(body, 0, tensor.shape[dimension], initial_step)
 
-    wrapped.__doc__ = f"""
-Wrapped in maa_chunked: 
 
-Expects torch.Tensor as first argument.
+class toma:
+    """
+    Decorators that make it easy to wrap functions.
+    """
+
+    @staticmethod
+    def batch(func=None, *, initial_batchsize=None, cache_type=tbc.StacktraceMemoryBatchsizeCache):
+        if func is None:
+            return functools.partial(toma.batch, initial_batchsize=initial_batchsize, cache_type=cache_type)
+
+        @functools.wraps(func)
+        def wrapped(*args, toma_initial_batchsize=None, **kwargs):
+            _initial_batchsize = toma_initial_batchsize or initial_batchsize
+            return explicit.batch(func, _initial_batchsize, *args, toma_cache_type=cache_type, **kwargs)
+
+        wrapped.__doc__ = f"""
+Wrapped in toma.batch: 
 
 Additional keyargs:
-    maa_initial_step: initial step size to use
-    maa_dimension: dimension of the tensor to chunk along
+    toma_initial_batchsize: initial step size to use.
 
 {wrapped.__doc__}
 """
 
-    return wrapped
+        return wrapped
+
+    @staticmethod
+    def range(func=None, *, initial_step=None, cache_type=tbc.StacktraceMemoryBatchsizeCache):
+        if func is None:
+            return functools.partial(toma.range, initial_step=initial_step, cache_type=cache_type)
+
+        @functools.wraps(func)
+        def wrapped(start, end, *args, toma_initial_step=None, **kwargs):
+            _initial_step = toma_initial_step or initial_step
+
+            return explicit.range(
+                func, start, end, _initial_step, *args, toma_context=func, toma_cache_type=cache_type, **kwargs
+            )
+
+        wrapped.__doc__ = f"""
+Wrapped in toma.range: 
+
+Additional keyargs:
+    toma_initial_step: initial step size to use.
+
+{wrapped.__doc__}
+"""
+
+        return wrapped
+
+    @staticmethod
+    def chunked(func=None, *, initial_step=None, dimension=None, cache_type: Type = tbc.StacktraceMemoryBatchsizeCache):
+        dimension = dimension or 0
+        if func is None:
+            return functools.partial(
+                toma.chunked, initial_step=initial_step, dimension=dimension, cache_type=cache_type
+            )
+
+        @functools.wraps(func)
+        def wrapped(tensor: torch.Tensor, *args, toma_initial_step=None, toma_dimension=None, **kwargs):
+            _initial_step = toma_initial_step or initial_step
+            _dimension = toma_dimension or dimension
+
+            explicit.chunked(
+                func, tensor, _initial_step, *args, toma_dimension=toma_dimension, toma_cache_type=cache_type, **kwargs
+            )
+
+        wrapped.__doc__ = f"""
+Wrapped in toma.chunked: 
+
+Additional keyargs:
+    toma_initial_step: initial step size to use
+    toma_dimension: dimension of the tensor to chunk along
+
+{wrapped.__doc__}
+"""
+
+        return wrapped
 
 
-def explicit_toma(func, initial_batchsize, bind_to=None,
-                  batchsize_cache_type=tbc.GlobalBatchsizeCache):
-    bind_to = bind_to or func
-    attr_name = f"maa_cache_{batchsize_cache_type.get_attr_suffix()}"
-    if not hasattr(bind_to, attr_name):
-        cache = batchsize_cache_type()
-        setattr(bind_to, attr_name, cache)
-    else:
-        cache = getattr(bind_to, attr_name)
-
-    cache.set_initial_batchsize(initial_batchsize)
-    batchsize = cache.get_batchsize()
-
-    while True:
-        try:
-            value = batchsize.get_batchsize()
-            return func(value)
-        except RuntimeError as exception:
-            if value > 1 and tcm.should_reduce_batch_size(exception):
-                batchsize.decrease_batchsize()
-                tcm.gc_cuda()
-            else:
-                raise
+CONTEXT_CACHE_SIZE = 2 ** 14
 
 
-def explicit_toma_range(func, start, end, initial_step, bind_to=None,
-                        batchsize_cache_type=tbc.GlobalBatchsizeCache):
-    bind_to = bind_to or func
-    attr_name = f"maa_cache_{batchsize_cache_type.get_attr_suffix()}"
-    if not hasattr(bind_to, attr_name):
-        cache = batchsize_cache_type()
-        setattr(bind_to, attr_name, cache)
-    else:
-        cache = getattr(bind_to, attr_name)
+@functools.lru_cache(CONTEXT_CACHE_SIZE)
+def get_cache_for_context(batchsize_cache_type, context):
+    return batchsize_cache_type()
 
-    cache.set_initial_batchsize(initial_step)
-    batchsize = cache.get_batchsize()
 
-    tcm.gc_cuda()
-    current = start
-    while current < end:
-        try:
-            func(current, min(current + batchsize.get_batchsize(), end))
-            current += batchsize.get_batchsize()
-        except RuntimeError as exception:
-            if batchsize.get_batchsize() > 1 and tcm.should_reduce_batch_size(
-                    exception):
-                batchsize.decrease_batchsize()
-                tcm.gc_cuda()
-            else:
-                raise
+class explicit:
+    """
+    Explicit calls that can use different cache types to memorize settings.
+    """
+
+    @staticmethod
+    def batch(
+        func, initial_batchsize, *args, toma_context=None, toma_cache_type: Type = tbc.GlobalBatchsizeCache, **kwargs
+    ):
+        cache = get_cache_for_context(toma_cache_type, toma_context or func)
+
+        batchsize = cache.get_batchsize(initial_batchsize)
+
+        while True:
+            try:
+                value = batchsize.get_batchsize()
+                return func(value, *args, **kwargs)
+            except RuntimeError as exception:
+                if value > 1 and tcm.should_reduce_batch_size(exception):
+                    batchsize.decrease_batchsize()
+                    tcm.gc_cuda()
+                else:
+                    raise
+
+    @staticmethod
+    def range(
+        func,
+        start,
+        end,
+        initial_step,
+        *args,
+        toma_context=None,
+        toma_cache_type: Type = tbc.GlobalBatchsizeCache,
+        **kwargs,
+    ):
+        cache = get_cache_for_context(toma_cache_type, toma_context or func)
+
+        batchsize = cache.get_batchsize(initial_step)
+
+        tcm.gc_cuda()
+        current = start
+        while current < end:
+            try:
+                func(current, min(current + batchsize.get_batchsize(), end), *args, **kwargs)
+                current += batchsize.get_batchsize()
+            except RuntimeError as exception:
+                if batchsize.get_batchsize() > 1 and tcm.should_reduce_batch_size(exception):
+                    batchsize.decrease_batchsize()
+                    tcm.gc_cuda()
+                else:
+                    raise
+
+    @staticmethod
+    def chunked(
+        func,
+        tensor,
+        initial_step,
+        *args,
+        toma_dimension=None,
+        toma_context=None,
+        toma_cache_type: Type = tbc.GlobalBatchsizeCache,
+        **kwargs,
+    ):
+        toma_dimension = toma_dimension or 0
+
+        def body(start, end):
+            return func(tensor.narrow(dim=toma_dimension, start=start, length=end - start), start, end, *args, **kwargs)
+
+        explicit.range(
+            body,
+            0,
+            tensor.shape[toma_dimension],
+            initial_step,
+            *args,
+            toma_context=toma_context or func,
+            toma_cache_type=toma_cache_type,
+        )

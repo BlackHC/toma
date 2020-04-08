@@ -8,7 +8,11 @@ import weakref
 
 @dataclass
 class Batchsize:
-    value: int
+    value: Optional[int] = None
+
+    def set_initial_batchsize(self, initial_batchsize):
+        if not self.value:
+            self.value = initial_batchsize
 
     def get_batchsize(self):
         return self.value
@@ -24,10 +28,7 @@ class BatchsizeCache:
         stacktrace = tst.get_simple_traceback(2)
         BatchsizeCache.all_instances[stacktrace] = self
 
-    def set_initial_batchsize(self, initial_batchsize):
-        raise NotImplementedError()
-
-    def get_batchsize(self) -> Batchsize:
+    def get_batchsize(self, initial_batchsize: int) -> Batchsize:
         raise NotImplementedError()
 
     @staticmethod
@@ -36,49 +37,40 @@ class BatchsizeCache:
 
 
 @dataclass
+class NoBatchsizeCache(BatchsizeCache):
+    def get_batchsize(self, initial_batchsize) -> Batchsize:
+        return Batchsize(initial_batchsize)
+
+
+@dataclass
 class GlobalBatchsizeCache(BatchsizeCache):
-    value: Optional[Batchsize] = None
+    batchsize: Optional[Batchsize] = None
 
-    def set_initial_batchsize(self, initial_batchsize):
-        if not self.value:
-            self.value = Batchsize(initial_batchsize)
-
-    def get_batchsize(self) -> Batchsize:
-        return self.value
-
-    @staticmethod
-    def get_attr_suffix() -> str:
-        return "global"
-
-
-LRU_CACHE_SIZE = 128
+    def get_batchsize(self, initial_batchsize) -> Batchsize:
+        if not self.batchsize:
+            self.batchsize = Batchsize(initial_batchsize)
+        return self.batchsize
 
 
 class StacktraceMemoryBatchsizeCache(BatchsizeCache):
+    LRU_CACHE_SIZE = 128
     initial_batchsize: Optional[int]
 
-    def __init__(self):
+    def __init__(self, lru_cache_size=None):
         super().__init__()
 
         self.initial_batchsize = None
 
-        @functools.lru_cache(LRU_CACHE_SIZE)
+        @functools.lru_cache(lru_cache_size or StacktraceMemoryBatchsizeCache.LRU_CACHE_SIZE)
         def get_batchsize_from_cache(stacktrace, available_memory):
             return Batchsize(self.initial_batchsize)
 
         self.get_batchsize_from_cache = get_batchsize_from_cache
 
-    def set_initial_batchsize(self, initial_batchsize):
-        self.initial_batchsize = initial_batchsize
-
-
-    def get_batchsize(self):
+    def get_batchsize(self, initial_batchsize):
         stacktrace = tst.get_simple_traceback(2)
-        available_memory_256MB = int(
-            tcm.get_cuda_assumed_available_memory() // 2 ** 28)
+        available_memory_256MB = int(tcm.get_cuda_assumed_available_memory() // 2 ** 28)
 
-        return self.get_batchsize_from_cache(stacktrace, available_memory_256MB)
-
-    @staticmethod
-    def get_attr_suffix() -> str:
-        return "sm"
+        batchsize = self.get_batchsize_from_cache(stacktrace, available_memory_256MB)
+        batchsize.set_initial_batchsize(initial_batchsize)
+        return batchsize

@@ -66,7 +66,9 @@ def should_reduce_batch_size(exception):
 
 
 def cuda_meminfo():
-    print("Total:", torch.cuda.memory_allocated() / 2 ** 30, " GB Cached: ", torch.cuda.memory_reserved() / 2 ** 30, "GB")
+    print(
+        "Total:", torch.cuda.memory_allocated() / 2 ** 30, " GB Cached: ", torch.cuda.memory_reserved() / 2 ** 30, "GB"
+    )
     print(
         "Max Total:",
         torch.cuda.max_memory_allocated() / 2 ** 30,
