@@ -1,6 +1,6 @@
 import torch
 
-from tomaa import simple, simple_range, simple_chunked
+from toma import simple
 
 
 def raise_fake_oom():
@@ -19,7 +19,7 @@ def test_fake_simple_toma():
 
         assert batch_size >= 16
 
-    simple(f, 64)
+    simple.batch(f, 64)
 
     assert hit_16
 
@@ -38,7 +38,7 @@ def test_fake_simple_toma_range():
 
         assert batch_size >= 16
 
-    simple_range(f, 0, 128, 64)
+    simple.range(f, 0, 128, 64)
 
     assert hit_16
 
@@ -58,13 +58,14 @@ def test_fake_simple_toma_chunked():
         tensor[:] = 1
 
     tensor = torch.zeros(128, dtype=torch.float)
-    simple_chunked(f, tensor, 64)
-    assert torch.allclose(tensor, torch.tensor(1.))
+    simple.chunked(f, tensor, 64)
+    assert torch.allclose(tensor, torch.tensor(1.0))
     assert hit_16
 
 
 def test_simple_toma():
     import torch
+
     if not torch.cuda.is_available():
         print("CUDA not available")
         return
@@ -75,8 +76,7 @@ def test_simple_toma():
     def f(batch_size):
         # 2**20*2*7*2**3 * batch_size = batch_size GB
         try:
-            torch.empty((batch_size, 1024, 1024, 128), dtype=torch.double,
-                        device="cuda")
+            torch.empty((batch_size, 1024, 1024, 128), dtype=torch.double, device="cuda")
         except:
             nonlocal failed
             failed = True
@@ -84,13 +84,14 @@ def test_simple_toma():
         nonlocal succeeded
         succeeded = True
 
-    simple(f, 64)
+    simple.batch(f, 64)
     assert failed
     assert succeeded
 
 
 def test_simple_toma_range():
     import torch
+
     if not torch.cuda.is_available():
         print("CUDA not available")
         return
@@ -101,8 +102,7 @@ def test_simple_toma_range():
     def f(start, end):
         # 2**20*2*7*2**3 * batch_size = batch_size GB
         try:
-            torch.empty((end - start, 1024, 1024, 128), dtype=torch.double,
-                        device="cuda")
+            torch.empty((end - start, 1024, 1024, 128), dtype=torch.double, device="cuda")
         except:
             nonlocal failed
             failed = True
@@ -110,6 +110,6 @@ def test_simple_toma_range():
         nonlocal succeeded
         succeeded = True
 
-    simple_range(f, 0, 128, 64)
+    simple.range(f, 0, 128, 64)
     assert failed
     assert succeeded

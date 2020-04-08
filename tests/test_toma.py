@@ -1,6 +1,4 @@
-from tomaa import toma, toma_range, toma_chunked
-from tomaa import simple, simple_range
-from tomaa import explicit_toma, explicit_toma_range
+from toma import toma, explicit, batchsize_cache as tbc
 
 
 def raise_fake_oom():
@@ -10,7 +8,7 @@ def raise_fake_oom():
 def test_fake_toma_simple():
     batchsizes = []
 
-    @toma(method=simple)
+    @toma.batch(initial_batchsize=64, cache_type=tbc.NoBatchsizeCache)
     def f(batchsize):
         nonlocal batchsizes
         batchsizes.append(batchsize)
@@ -19,7 +17,7 @@ def test_fake_toma_simple():
             raise_fake_oom()
 
     for _ in range(2):
-        f(64)
+        f()
 
     assert batchsizes == [64, 32, 16, 64, 32, 16]
 
@@ -27,7 +25,7 @@ def test_fake_toma_simple():
 def test_fake_toma_explicit():
     batchsizes = []
 
-    @toma(method=explicit_toma)
+    @toma.batch(initial_batchsize=64, cache_type=tbc.GlobalBatchsizeCache)
     def f(batchsize):
         nonlocal batchsizes
         batchsizes.append(batchsize)
@@ -36,7 +34,7 @@ def test_fake_toma_explicit():
             raise_fake_oom()
 
     for _ in range(2):
-        f(64)
+        f()
 
     assert batchsizes == [64, 32, 16, 16]
 
@@ -44,7 +42,7 @@ def test_fake_toma_explicit():
 def test_fake_toma_range_global():
     batchsizes = []
 
-    @toma_range(method=simple_range)
+    @toma.range(initial_step=64, cache_type=tbc.NoBatchsizeCache)
     def f(start, end):
         batchsize = end - start
 
@@ -57,7 +55,7 @@ def test_fake_toma_range_global():
             raise_fake_oom()
 
     for _ in range(2):
-        f(0, 128, maa_initial_step=64)
+        f(0, 128)
 
     assert batchsizes == [64, 64, 32, 32, 16, 16] * 2
 
@@ -65,7 +63,7 @@ def test_fake_toma_range_global():
 def test_fake_toma_range_explicit():
     batchsizes = []
 
-    @toma_range(method=explicit_toma_range)
+    @toma.range(initial_step=64, cache_type=tbc.GlobalBatchsizeCache)
     def f(start, end):
         batchsize = end - start
 
@@ -78,6 +76,6 @@ def test_fake_toma_range_explicit():
             raise_fake_oom()
 
     for _ in range(2):
-        f(0, 128, maa_initial_step=64)
+        f(0, 128)
 
     assert batchsizes == [64, 64, 32, 32, 16, 16] + [16] * 8

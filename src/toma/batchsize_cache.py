@@ -2,7 +2,7 @@ import functools
 from dataclasses import dataclass
 from typing import Optional
 
-from tomaa import stacktrace as tst, torch_cuda_memory as tcm
+from toma import stacktrace as tst, torch_cuda_memory as tcm
 import weakref
 
 
@@ -10,11 +10,11 @@ import weakref
 class Batchsize:
     value: Optional[int] = None
 
-    def set_initial_batchsize(self, initial_batchsize):
+    def set_initial_batchsize(self, initial_batchsize: int):
         if not self.value:
             self.value = initial_batchsize
 
-    def get_batchsize(self):
+    def get_batchsize(self) -> int:
         return self.value
 
     def decrease_batchsize(self):
@@ -31,14 +31,10 @@ class BatchsizeCache:
     def get_batchsize(self, initial_batchsize: int) -> Batchsize:
         raise NotImplementedError()
 
-    @staticmethod
-    def get_attr_suffix() -> str:
-        raise NotImplementedError()
-
 
 @dataclass
 class NoBatchsizeCache(BatchsizeCache):
-    def get_batchsize(self, initial_batchsize) -> Batchsize:
+    def get_batchsize(self, initial_batchsize: int) -> Batchsize:
         return Batchsize(initial_batchsize)
 
 
@@ -46,7 +42,7 @@ class NoBatchsizeCache(BatchsizeCache):
 class GlobalBatchsizeCache(BatchsizeCache):
     batchsize: Optional[Batchsize] = None
 
-    def get_batchsize(self, initial_batchsize) -> Batchsize:
+    def get_batchsize(self, initial_batchsize: int) -> Batchsize:
         if not self.batchsize:
             self.batchsize = Batchsize(initial_batchsize)
         return self.batchsize
@@ -67,7 +63,7 @@ class StacktraceMemoryBatchsizeCache(BatchsizeCache):
 
         self.get_batchsize_from_cache = get_batchsize_from_cache
 
-    def get_batchsize(self, initial_batchsize):
+    def get_batchsize(self, initial_batchsize: int):
         stacktrace = tst.get_simple_traceback(2)
         available_memory_256MB = int(tcm.get_cuda_assumed_available_memory() // 2 ** 28)
 

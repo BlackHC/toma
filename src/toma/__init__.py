@@ -4,13 +4,13 @@ Helpers to allow for OOM conditions and dynamic adaptation of "internal"
 batchsizes. (Without affecting the computational ones.)
 """
 import functools
-from typing import Type
+from typing import Type, Optional
 
 import torch
 
-import tomaa.torch_cuda_memory as tcm
-import tomaa.stacktrace as tst
-import tomaa.batchsize_cache as tbc
+import toma.torch_cuda_memory as tcm
+import toma.stacktrace as tst
+import toma.batchsize_cache as tbc
 
 
 class simple:
@@ -19,7 +19,7 @@ class simple:
     """
 
     @staticmethod
-    def batch(func, initial_batchsize, *args, **kwargs):
+    def batch(func, initial_batchsize: int, *args, **kwargs):
         tcm.gc_cuda()
 
         batchsize = initial_batchsize
@@ -34,7 +34,7 @@ class simple:
                     raise
 
     @staticmethod
-    def range(func, start, end, initial_step, *args, **kwargs):
+    def range(func, start: int, end: int, initial_step: int, *args, **kwargs):
         tcm.gc_cuda()
 
         stepsize = initial_step
@@ -51,7 +51,7 @@ class simple:
                     raise
 
     @staticmethod
-    def chunked(func, tensor, initial_step, dimension=0):
+    def chunked(func, tensor, initial_step: int, dimension: int = 0):
         def body(start, end):
             return func(tensor.narrow(dim=dimension, start=start, length=end - start), start, end)
 
@@ -85,12 +85,12 @@ Additional keyargs:
         return wrapped
 
     @staticmethod
-    def range(func=None, *, initial_step=None, cache_type=tbc.StacktraceMemoryBatchsizeCache):
+    def range(func=None, *, initial_step: Optional[int] = None, cache_type=tbc.StacktraceMemoryBatchsizeCache):
         if func is None:
             return functools.partial(toma.range, initial_step=initial_step, cache_type=cache_type)
 
         @functools.wraps(func)
-        def wrapped(start, end, *args, toma_initial_step=None, **kwargs):
+        def wrapped(start: int, end: int, *args, toma_initial_step: Optional[int] = None, **kwargs):
             _initial_step = toma_initial_step or initial_step
 
             return explicit.range(
@@ -109,7 +109,13 @@ Additional keyargs:
         return wrapped
 
     @staticmethod
-    def chunked(func=None, *, initial_step=None, dimension=None, cache_type: Type = tbc.StacktraceMemoryBatchsizeCache):
+    def chunked(
+        func=None,
+        *,
+        initial_step: Optional[int] = None,
+        dimension: Optional[int] = None,
+        cache_type: Type = tbc.StacktraceMemoryBatchsizeCache,
+    ):
         dimension = dimension or 0
         if func is None:
             return functools.partial(
@@ -117,12 +123,18 @@ Additional keyargs:
             )
 
         @functools.wraps(func)
-        def wrapped(tensor: torch.Tensor, *args, toma_initial_step=None, toma_dimension=None, **kwargs):
+        def wrapped(
+            result: torch.Tensor,
+            *args,
+            toma_initial_step: Optional[int] = None,
+            toma_dimension: Optional[int] = None,
+            **kwargs,
+        ):
             _initial_step = toma_initial_step or initial_step
             _dimension = toma_dimension or dimension
 
             explicit.chunked(
-                func, tensor, _initial_step, *args, toma_dimension=toma_dimension, toma_cache_type=cache_type, **kwargs
+                func, result, _initial_step, *args, toma_dimension=toma_dimension, toma_cache_type=cache_type, **kwargs
             )
 
         wrapped.__doc__ = f"""
@@ -153,7 +165,12 @@ class explicit:
 
     @staticmethod
     def batch(
-        func, initial_batchsize, *args, toma_context=None, toma_cache_type: Type = tbc.GlobalBatchsizeCache, **kwargs
+        func,
+        initial_batchsize: int,
+        *args,
+        toma_context=None,
+        toma_cache_type: Type = tbc.GlobalBatchsizeCache,
+        **kwargs,
     ):
         cache = get_cache_for_context(toma_cache_type, toma_context or func)
 
@@ -173,9 +190,9 @@ class explicit:
     @staticmethod
     def range(
         func,
-        start,
-        end,
-        initial_step,
+        start: int,
+        end: int,
+        initial_step: int,
         *args,
         toma_context=None,
         toma_cache_type: Type = tbc.GlobalBatchsizeCache,
@@ -201,23 +218,23 @@ class explicit:
     @staticmethod
     def chunked(
         func,
-        tensor,
-        initial_step,
+        result: torch.Tensor,
+        initial_step: int,
         *args,
-        toma_dimension=None,
+        toma_dimension: int = None,
         toma_context=None,
         toma_cache_type: Type = tbc.GlobalBatchsizeCache,
         **kwargs,
     ):
         toma_dimension = toma_dimension or 0
 
-        def body(start, end):
-            return func(tensor.narrow(dim=toma_dimension, start=start, length=end - start), start, end, *args, **kwargs)
+        def body(start: int, end: int):
+            return func(result.narrow(dim=toma_dimension, start=start, length=end - start), start, end, *args, **kwargs)
 
         explicit.range(
             body,
             0,
-            tensor.shape[toma_dimension],
+            result.shape[toma_dimension],
             initial_step,
             *args,
             toma_context=toma_context or func,
