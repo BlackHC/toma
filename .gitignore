@@ -1,1 +1,5 @@
 /.idea/
+/build/
+/dist/
+.benchmarks/
+*.egg-info

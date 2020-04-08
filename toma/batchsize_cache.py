@@ -2,6 +2,7 @@ import functools
 from dataclasses import dataclass
 from typing import Optional
 
+import toma.cpu_memory
 from toma import stacktrace as tst, torch_cuda_memory as tcm
 import weakref
 
@@ -50,7 +51,9 @@ class GlobalBatchsizeCache(BatchsizeCache):
 
 
 class StacktraceMemoryBatchsizeCache(BatchsizeCache):
-    LRU_CACHE_SIZE = 128
+    LRU_CACHE_SIZE: int = 128
+    TRACK_RAM: bool = True
+
     initial_batchsize: Optional[int]
 
     def __init__(self, lru_cache_size=None):
@@ -59,15 +62,20 @@ class StacktraceMemoryBatchsizeCache(BatchsizeCache):
         self.initial_batchsize = None
 
         @functools.lru_cache(lru_cache_size or StacktraceMemoryBatchsizeCache.LRU_CACHE_SIZE)
-        def get_batchsize_from_cache(stacktrace, available_memory):
+        def get_batchsize_from_cache(stacktrace, cpu_available_memory, gpu_available_memory):
             return Batchsize(self.initial_batchsize)
 
         self.get_batchsize_from_cache = get_batchsize_from_cache
 
     def get_batchsize(self, initial_batchsize: int):
         stacktrace = tst.get_simple_traceback(2)
-        available_memory_256MB = int(tcm.get_cuda_assumed_available_memory() // 2 ** 28)
 
-        batchsize = self.get_batchsize_from_cache(stacktrace, available_memory_256MB)
+        cpu_available_memory_256MB = int(tcm.get_cuda_assumed_available_memory() // 2 ** 28)
+        if self.TRACK_RAM:
+            gpu_available_memory_256MB = int(toma.cpu_memory.get_available_cpu_memory() // 2 ** 28)
+        else:
+            gpu_available_memory_256MB = -1
+
+        batchsize = self.get_batchsize_from_cache(stacktrace, cpu_available_memory_256MB, gpu_available_memory_256MB)
         batchsize.set_initial_batchsize(initial_batchsize)
         return batchsize

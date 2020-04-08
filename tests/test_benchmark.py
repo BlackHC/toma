@@ -1,6 +1,9 @@
 import torch
 import pytest_benchmark
 
+# Preload this import
+import resource
+
 from toma import simple, toma, explicit, NoBatchsizeCache
 
 

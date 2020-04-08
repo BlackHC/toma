@@ -8,7 +8,7 @@ import gc
 
 
 def gc_cuda():
-    """Gargage collect Torch cuda memory."""
+    """Gargage collect Torch (CUDA) memory."""
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -31,6 +31,7 @@ def get_cuda_available_memory():
     if torch.cuda.is_available():
         return get_cuda_assumed_available_memory() - get_cuda_blocked_memory()
     return 0
+
 
 def get_cuda_blocked_memory():
     if not torch.cuda.is_available():
@@ -68,10 +69,6 @@ def is_cudnn_snafu(exception):
         and len(exception.args) == 1
         and "cuDNN error: CUDNN_STATUS_NOT_SUPPORTED." in exception.args[0]
     )
-
-
-def should_reduce_batch_size(exception):
-    return is_cuda_out_of_memory(exception) or is_cudnn_snafu(exception)
 
 
 def cuda_meminfo():

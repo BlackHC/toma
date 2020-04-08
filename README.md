@@ -80,9 +80,17 @@ toma.explicit.batch(..., toma_cache_type=toma.GlobalBatchsizeCache)
 ### `StacktraceMemoryBatchsizeCache`: Stacktrace & Available Memory (*the default*)
 
 This memorizes the successful batchsizes for a given call trace and available memory at that point.
-For most machine learning code this is sufficient to know the right batchsize without having to look at the actual arguments and understanding more of the semantics.
+For most machine learning code, this is sufficient to remember the right batchsize without having to look at the actual arguments and understanding more of the semantics.
 
-The implicit assumption is that after a few iterations a stable state will be reached in regards to memory usage.
+The implicit assumption is that after a few iterations a stable state will be reached in regards to GPU and CPU memory usage.
+
+To limit the CPU memory of the process, toma provides:
+```python
+import toma.cpu_memory
+
+toma.cpu_memory.set_cpu_memory_limit(8)
+```
+This can also be useful to avoid accidental swap thrashing.
 
 ### `GlobalBatchsizeCache`: Global per Function
 

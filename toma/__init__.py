@@ -8,9 +8,10 @@ from typing import Type, Optional
 
 import torch
 
-import toma.torch_cuda_memory as tcm
 import toma.stacktrace as tst
 from toma.batchsize_cache import StacktraceMemoryBatchsizeCache, NoBatchsizeCache, GlobalBatchsizeCache
+from toma.cpu_memory import is_out_of_cpu_memory
+from toma.torch_cuda_memory import is_cuda_out_of_memory, is_cudnn_snafu, gc_cuda
 
 
 DEFAULT_CACHE_TYPE = StacktraceMemoryBatchsizeCache
@@ -23,22 +24,22 @@ class simple:
 
     @staticmethod
     def batch(func, initial_batchsize: int, *args, **kwargs):
-        tcm.gc_cuda()
+        gc_cuda()
 
         batchsize = initial_batchsize
         while True:
             try:
                 return func(batchsize, *args, **kwargs)
             except RuntimeError as exception:
-                if batchsize > 1 and tcm.should_reduce_batch_size(exception):
+                if batchsize > 1 and should_reduce_batch_size(exception):
                     batchsize //= 2
-                    tcm.gc_cuda()
+                    gc_cuda()
                 else:
                     raise
 
     @staticmethod
     def range(func, start: int, end: int, initial_step: int, *args, **kwargs):
-        tcm.gc_cuda()
+        gc_cuda()
 
         stepsize = initial_step
         current = start
@@ -47,9 +48,9 @@ class simple:
                 func(current, min(current + stepsize, end), *args, **kwargs)
                 current += stepsize
             except RuntimeError as exception:
-                if stepsize > 1 and tcm.should_reduce_batch_size(exception):
+                if stepsize > 1 and should_reduce_batch_size(exception):
                     stepsize //= 2
-                    tcm.gc_cuda()
+                    gc_cuda()
                 else:
                     raise
 
@@ -170,7 +171,7 @@ class explicit:
     def batch(
         func, initial_batchsize: int, *args, toma_context=None, toma_cache_type: Type = DEFAULT_CACHE_TYPE, **kwargs
     ):
-        tcm.gc_cuda()
+        gc_cuda()
 
         cache = get_cache_for_context(toma_cache_type, toma_context or func)
 
@@ -181,9 +182,9 @@ class explicit:
                 value = batchsize.get()
                 return func(value, *args, **kwargs)
             except RuntimeError as exception:
-                if value > 1 and tcm.should_reduce_batch_size(exception):
+                if value > 1 and should_reduce_batch_size(exception):
                     batchsize.decrease_batchsize()
-                    tcm.gc_cuda()
+                    gc_cuda()
                 else:
                     raise
 
@@ -198,22 +199,22 @@ class explicit:
         toma_cache_type: Type = DEFAULT_CACHE_TYPE,
         **kwargs,
     ):
-        tcm.gc_cuda()
+        gc_cuda()
 
         cache = get_cache_for_context(toma_cache_type, toma_context or func)
 
         batchsize = cache.get_batchsize(initial_step)
 
-        tcm.gc_cuda()
+        gc_cuda()
         current = start
         while current < end:
             try:
                 func(current, min(current + batchsize.get(), end), *args, **kwargs)
                 current += batchsize.get()
             except RuntimeError as exception:
-                if batchsize.get() > 1 and tcm.should_reduce_batch_size(exception):
+                if batchsize.get() > 1 and should_reduce_batch_size(exception):
                     batchsize.decrease_batchsize()
-                    tcm.gc_cuda()
+                    gc_cuda()
                 else:
                     raise
 
@@ -242,3 +243,7 @@ class explicit:
             toma_context=toma_context or func,
             toma_cache_type=toma_cache_type,
         )
+
+
+def should_reduce_batch_size(exception):
+    return is_cuda_out_of_memory(exception) or is_cudnn_snafu(exception) or is_out_of_cpu_memory(exception)
