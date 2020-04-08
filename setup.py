@@ -17,9 +17,11 @@ setup(
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
     version="0.0.0",
-    description="Make it easy to write algorithms in PyTorch that adapt to the available CUDA memory",
+    description="Write algorithms in PyTorch that adapt to the available (CUDA) memory",
     # Fix windows newlines.
     long_description=long_description.replace("\r\n", "\n"),
+    long_description_content_type="text/markdown",
+
     # The project's main homepage.
     url="https://github.com/blackhc/toma",
     # Author details
