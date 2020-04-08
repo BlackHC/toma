@@ -1,6 +1,6 @@
 # Torch Memory-adaptive Algorithms (TOMA)
 
-[![Build Status](https://www.travis-ci.com/BlackHC/toma.svg?branch=master)](https://www.travis-ci.com/BlackHC/toma) [![codecov](https://codecov.io/gh/BlackHC/toma/branch/master/graph/badge.svg)](https://codecov.io/gh/BlackHC/implicit_lambda) [![PyPI](https://img.shields.io/badge/PyPI-toma-blue.svg)](https://pypi.python.org/pypi/toma/)
+[![Build Status](https://www.travis-ci.com/BlackHC/toma.svg?branch=master)](https://www.travis-ci.com/BlackHC/toma) [![codecov](https://codecov.io/gh/BlackHC/toma/branch/master/graph/badge.svg)](https://codecov.io/gh/BlackHC/toma) [![PyPI](https://img.shields.io/badge/PyPI-toma-blue.svg)](https://pypi.python.org/pypi/toma/)
 
 A collection of helpers to make it easier to write code that adapts to the available (CUDA) memory.
 Specifically, it retries code that fails due to OOM (out-of-memory) conditions and lowers batchsizes automatically. 
