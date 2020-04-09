@@ -16,7 +16,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version="1.0.1",
+    version="1.0.2",
     description="Write algorithms in PyTorch that adapt to the available (CUDA) memory",
     # Fix windows newlines.
     long_description=long_description.replace("\r\n", "\n"),
@@ -35,7 +35,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         # Indicate who your project is intended for
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
@@ -60,7 +60,7 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         "dev": ["check-manifest"],
-        "test": ["coverage", "codecov", "pytest", "pytest-benchmark", "pytest-cov"],
+        "test": ["coverage", "codecov", "pytest", "pytest-benchmark", "pytest-cov", "pytest-xdist"],
     },
     setup_requires=["pytest-runner"],
 )
