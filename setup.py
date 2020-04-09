@@ -60,7 +60,7 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         "dev": ["check-manifest"],
-        "test": ["coverage", "codecov", "pytest", "pytest-benchmark", "pytest-cov", "pytest-xdist"],
+        "test": ["coverage", "codecov", "pytest", "pytest-benchmark", "pytest-cov", "pytest-forked"],
     },
     setup_requires=["pytest-runner"],
 )
