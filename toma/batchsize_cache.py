@@ -52,6 +52,7 @@ class GlobalBatchsizeCache(BatchsizeCache):
 
 class StacktraceMemoryBatchsizeCache(BatchsizeCache):
     LRU_CACHE_SIZE: int = 128
+    MEMORY_GRANULARITY: int = 2 ** 28
     TRACK_RAM: bool = True
 
     initial_batchsize: Optional[int]
@@ -70,12 +71,13 @@ class StacktraceMemoryBatchsizeCache(BatchsizeCache):
     def get_batchsize(self, initial_batchsize: int):
         stacktrace = tst.get_simple_traceback(2)
 
-        cpu_available_memory_256MB = int(tcm.get_cuda_assumed_available_memory() // 2 ** 28)
         if self.TRACK_RAM:
-            gpu_available_memory_256MB = int(toma.cpu_memory.get_available_cpu_memory() // 2 ** 28)
+            cpu_available_memory = int(toma.cpu_memory.get_available_cpu_memory() // self.MEMORY_GRANULARITY)
         else:
-            gpu_available_memory_256MB = -1
+            cpu_available_memory = -1
 
-        batchsize = self.get_batchsize_from_cache(stacktrace, cpu_available_memory_256MB, gpu_available_memory_256MB)
+        gpu_available_memory = int(tcm.get_cuda_assumed_available_memory() // self.MEMORY_GRANULARITY)
+
+        batchsize = self.get_batchsize_from_cache(stacktrace, cpu_available_memory, gpu_available_memory)
         batchsize.set_initial_batchsize(initial_batchsize)
         return batchsize

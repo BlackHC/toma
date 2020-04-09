@@ -1,21 +1,15 @@
+import pytest
 import torch
 
-from toma import toma
 from toma import cpu_memory
 
 
+@pytest.mark.forked
 def test_cpu_mem_limit():
-    cpu_memory.set_cpu_memory_limit(2)
+    tensor = torch.empty((128, 1024, 1024 // 4), dtype=torch.float32)
+    tensor.resize_(1)
 
-    batchsize = None
+    cpu_memory.set_cpu_memory_limit(0.25)
 
-    @toma.batch(initial_batchsize=2048)
-    def allocate_gigabytes(bs):
-        torch.empty((bs, 1024, 1024 // 4), dtype=torch.float32)
-
-        nonlocal batchsize
-        batchsize = bs
-
-    allocate_gigabytes()
-
-    assert batchsize <= 512
+    with pytest.raises(RuntimeError):
+        torch.empty((512, 1024, 1024 // 4), dtype=torch.float32)
