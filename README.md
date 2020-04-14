@@ -119,4 +119,4 @@ test_toma              36.9633 (17.23)    57.0220 (15.11)    43.5201 (18.89)    
 
 ## Thanks
 
-Thanks to @y0ast for feedback and discussion.
+Thanks to [@y0ast](https://github.com/y0ast) for feedback and discussion.
