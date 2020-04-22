@@ -51,7 +51,7 @@ class GlobalBatchsizeCache(BatchsizeCache):
 
 
 class StacktraceMemoryBatchsizeCache(BatchsizeCache):
-    LRU_CACHE_SIZE: int = 128
+    LRU_CACHE_SIZE: int = 2 ** 16
     MEMORY_GRANULARITY: int = 2 ** 28
     TRACK_RAM: bool = True
 

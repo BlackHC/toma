@@ -37,9 +37,8 @@ def get_cuda_blocked_memory():
     if not torch.cuda.is_available():
         return 0
 
-    # In GB steps
     available_memory = get_cuda_assumed_available_memory()
-    current_block = available_memory - 2 ** 30
+    current_block = available_memory - 2 ** 28  # 256 MB steps
     while True:
         try:
             block = torch.empty((current_block,), dtype=torch.uint8, device="cuda")
