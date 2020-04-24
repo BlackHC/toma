@@ -199,7 +199,12 @@ Additional keyargs:
 
             def execute_chunked(func):
                 return explicit.chunked(
-                    func, tensor, initial_step, toma_dimension=dimension, toma_cache_type=cache_type, toma_context=context
+                    func,
+                    tensor,
+                    initial_step,
+                    toma_dimension=dimension,
+                    toma_cache_type=cache_type,
+                    toma_context=context,
                 )
 
             return execute_chunked
