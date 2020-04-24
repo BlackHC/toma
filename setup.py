@@ -16,7 +16,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version="2.0.0",
+    version="1.1.0",
     description="Write algorithms in PyTorch that adapt to the available (CUDA) memory",
     # Fix windows newlines.
     long_description=long_description.replace("\r\n", "\n"),

@@ -171,7 +171,7 @@ Additional keyargs:
     class execute:
         @staticmethod
         def batch(initial_batchsize, cache_type=DEFAULT_CACHE_TYPE, context=None):
-            context = context or tst.get_simple_traceback(2)
+            context = context or tst.get_simple_traceback(1)
 
             def execute_batch(func):
                 return explicit.batch(func, initial_batchsize, toma_cache_type=cache_type, toma_context=context)
@@ -180,7 +180,7 @@ Additional keyargs:
 
         @staticmethod
         def range(start, end, initial_step, cache_type=DEFAULT_CACHE_TYPE, context=None):
-            context = context or tst.get_simple_traceback(2)
+            context = context or tst.get_simple_traceback(1)
 
             def execute_range(func):
                 return explicit.range(func, start, end, initial_step, toma_cache_type=cache_type, toma_context=context)
@@ -195,7 +195,7 @@ Additional keyargs:
             cache_type: Type = DEFAULT_CACHE_TYPE,
             context=None,
         ):
-            context = context or tst.get_simple_traceback(2)
+            context = context or tst.get_simple_traceback(1)
 
             def execute_chunked(func):
                 return explicit.chunked(

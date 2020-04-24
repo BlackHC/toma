@@ -27,10 +27,10 @@ python setup.py test
 from toma import toma
 
 @toma.batch(initial_batchsize=512)
-def train_model(batchsize, model, dataset):
+def run_inference(batchsize, model, dataset):
     # ...
 
-train_model(batchsize, model, dataset)
+run_inference(batchsize, model, dataset)
 ```
 
 This will try to execute train_model with batchsize=512. If a memory error is thrown, it will decrease the batchsize until it succeeds.
@@ -63,6 +63,19 @@ reduce_data(0, 1024, result, dataA, dataB)
 ``` 
 
 `toma.range` iterates over `range(start, end, step)` with `step=initial_step`. If it fails due to OOM, it will lower the step size and continue.
+
+### `toma.execute`
+
+To make it easier to just execute a block without having to extract it into a function and then call it, we also provide `toma.execute.batch`, `toma.execute.range` and `toma.execute.chunked`, which are somewhat unorthodox and call the function that is passed to them right away. (Mainly because there is no support for anonymous functions in Python beyond lambda expressions.)
+
+```python
+def function():
+    # ... other code
+
+    @toma.execute.chunked(batched_data, initial_step=128):
+    def compute(chunk, start, end):
+        # ...
+```
 
 ## Cache
 
