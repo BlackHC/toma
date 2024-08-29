@@ -9,7 +9,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install requirements
-      run: pip install -e .
+      run: pip install -e ".[dev,test]"
     - name: Run tests and collect coverage
       run: pytest --cov .
     - name: Upload coverage reports to Codecov
