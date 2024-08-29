@@ -62,5 +62,5 @@ setup(
         "dev": ["check-manifest"],
         "test": ["coverage", "codecov", "pytest", "pytest-benchmark", "pytest-cov", "pytest-forked"],
     },
-    setup_requires=["pytest-runner"],
+    setup_requires=["setuptools>=60.7.0", "pytest-runner"],
 )
